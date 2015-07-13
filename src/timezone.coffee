@@ -100,12 +100,12 @@ module.exports = (robot) ->
     robot.brain.data.timezoneOffset = offset
     res.send("Default timezone offset is set to #{offset}")
 
-  robot.respond /(.*) from (.*) to (.*)/i, (res) ->
+  robot.respond /((\d|am|pm|-)*) from (.*) to (.*)/i, (res) ->
     timestamp = parseTime(res.match[1])
     return unless timestamp
     convertTime(res, timestamp, res.match[2], res.match[3], robot.http)
 
-  robot.respond /(.*) in (.*)/i, (res) ->
+  robot.respond /(?:(\d|am|pm|-|time)*) in (.*)/i, (res) ->
     requestedTime = res.match[1]
     defaultOffset = robot.brain.data.timezoneOffset || moment().utcOffset()
     if requestedTime == 'time'

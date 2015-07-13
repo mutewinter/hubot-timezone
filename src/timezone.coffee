@@ -72,9 +72,9 @@ getTimezoneInfo = (httpclient, timestamp, location, callback) ->
 
 # Convert time between 2 locations and send back the results.
 # If `fromLocation` is null, send back time in `toLocation`.
-convertTime = (res, timestamp, fromLocation, toLocation) ->
+convertTime = (res, timestamp, fromLocation, toLocation, http) ->
   sendLocalTime = (utcTimestamp, location) ->
-    getTimezoneInfo res.http, utcTimestamp, location, (err, result) ->
+    getTimezoneInfo http, utcTimestamp, location, (err, result) ->
       if (err)
         res.send("I can't find the time at #{location}.")
       else
@@ -82,7 +82,7 @@ convertTime = (res, timestamp, fromLocation, toLocation) ->
         res.send("Time in #{result.formattedAddress} is #{formatTime(localTimestamp)}")
 
   if fromLocation
-    getTimezoneInfo res.http, timestamp, fromLocation, (err, result) ->
+    getTimezoneInfo http, timestamp, fromLocation, (err, result) ->
       if (err)
         res.send("I can't find the time at #{fromLocation}.")
       else
@@ -103,7 +103,7 @@ module.exports = (robot) ->
   robot.respond /(.*) from (.*) to (.*)/i, (res) ->
     timestamp = parseTime(res.match[1])
     return unless timestamp
-    convertTime(res, timestamp, res.match[2], res.match[3])
+    convertTime(res, timestamp, res.match[2], res.match[3], robot.http)
 
   robot.respond /(.*) in (.*)/i, (res) ->
     requestedTime = res.match[1]
@@ -113,4 +113,4 @@ module.exports = (robot) ->
     else
       timestamp = parseTime(requestedTime) - defaultOffset * 60
     return unless timestamp
-    convertTime(res, timestamp, null, res.match[2])
+    convertTime(res, timestamp, null, res.match[2], robot.http)

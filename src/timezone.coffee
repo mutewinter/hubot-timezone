@@ -31,10 +31,11 @@ formatTime = (timestamp) ->
   return moment.utc(timestamp).format('dddd, MMMM Do YYYY, h:mm:ss a')
 
 # Use Google's Geocode and Timezone APIs to get timezone offset for a location.
-getTimezoneInfo = (httpclient, timestamp, location, callback) ->
+getTimezoneInfo = (res, timestamp, location, callback) ->
   q = querystring.stringify({ address: location, sensor: false })
 
-  httpclient('https://maps.googleapis.com/maps/api/geocode/json?' + q)
+  res.robot
+    .http('https://maps.googleapis.com/maps/api/geocode/json?' + q)
     .get() (err, httpRes, body) ->
       if err
         callback(err, null)
@@ -53,7 +54,8 @@ getTimezoneInfo = (httpclient, timestamp, location, callback) ->
         sensor: false
       })
 
-      httpclient('https://maps.googleapis.com/maps/api/timezone/json?' + tzq)
+      res.robot
+        .http('https://maps.googleapis.com/maps/api/timezone/json?' + tzq)
         .get() (err, httpRes, body) ->
           if err
             callback(err, null)
@@ -72,9 +74,9 @@ getTimezoneInfo = (httpclient, timestamp, location, callback) ->
 
 # Convert time between 2 locations and send back the results.
 # If `fromLocation` is null, send back time in `toLocation`.
-convertTime = (res, timestamp, fromLocation, toLocation, http) ->
+convertTime = (res, timestamp, fromLocation, toLocation) ->
   sendLocalTime = (utcTimestamp, location) ->
-    getTimezoneInfo http, utcTimestamp, location, (err, result) ->
+    getTimezoneInfo res, utcTimestamp, location, (err, result) ->
       if (err)
         res.send("I can't find the time at #{location}.")
       else
@@ -82,7 +84,7 @@ convertTime = (res, timestamp, fromLocation, toLocation, http) ->
         res.send("Time in #{result.formattedAddress} is #{formatTime(localTimestamp)}")
 
   if fromLocation
-    getTimezoneInfo http, timestamp, fromLocation, (err, result) ->
+    getTimezoneInfo res, timestamp, fromLocation, (err, result) ->
       if (err)
         res.send("I can't find the time at #{fromLocation}.")
       else
@@ -103,7 +105,7 @@ module.exports = (robot) ->
   robot.respond /((\d|am|pm|-)*) from (.*) to (.*)/i, (res) ->
     timestamp = parseTime(res.match[1])
     return unless timestamp
-    convertTime(res, timestamp, res.match[2], res.match[3], robot.http)
+    convertTime(res, timestamp, res.match[2], res.match[3])
 
   robot.respond /(?:(\d|am|pm|-|time)*) in (.*)/i, (res) ->
     requestedTime = res.match[1]
@@ -113,4 +115,4 @@ module.exports = (robot) ->
     else
       timestamp = parseTime(requestedTime) - defaultOffset * 60
     return unless timestamp
-    convertTime(res, timestamp, null, res.match[2], robot.http)
+    convertTime(res, timestamp, null, res.match[2])
